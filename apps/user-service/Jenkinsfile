@@ -1,0 +1,29 @@
+pipeline {
+  agent any
+
+  stages {
+
+    stage('Checkout Source Code') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        sh '''
+          docker build -t user-service:${BUILD_NUMBER} .
+        '''
+      }
+    }
+
+    stage('Verify Image') {
+      steps {
+        sh '''
+          docker images | grep user-service
+        '''
+      }
+    }
+
+  }
+}
