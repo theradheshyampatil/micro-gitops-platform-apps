@@ -11,9 +11,15 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        sh '''
-          docker build -t user-service:${BUILD_NUMBER} .
-        '''
+        /*
+          We must move into the service directory
+          because the Dockerfile lives here.
+        */
+        dir('apps/user-service') {
+          sh '''
+            docker build -t user-service:${BUILD_NUMBER} .
+          '''
+        }
       }
     }
 
@@ -27,3 +33,4 @@ pipeline {
 
   }
 }
+
