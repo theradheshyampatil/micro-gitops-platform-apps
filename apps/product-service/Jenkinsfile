@@ -1,43 +1,48 @@
 pipeline {
   agent any
 
+  environment {
+    AWS_REGION = "ap-south-1"
+    ECR_REPO   = "908692150527.dkr.ecr.ap-south-1.amazonaws.com/product-service"
+    IMAGE_TAG  = "${BUILD_NUMBER}"
+  }
+
   stages {
 
     stage('Checkout Source Code') {
       steps {
-        /*
-          Pull the latest code from GitHub.
-          Jenkins already knows which repo triggered the job.
-        */
         checkout scm
       }
     }
 
     stage('Build Docker Image') {
       steps {
-        /*
-          Move into product-service directory
-          because Dockerfile lives here.
-        */
         dir('apps/product-service') {
           sh '''
-            docker build -t product-service:${BUILD_NUMBER} .
+            docker build -t product-service:${IMAGE_TAG} .
           '''
         }
       }
     }
 
-    stage('Verify Image') {
+    stage('Login to AWS ECR') {
       steps {
-        /*
-          Lightweight verification that the image
-          was built and tagged successfully.
-        */
         sh '''
-          docker images | grep product-service
+          aws ecr get-login-password --region $AWS_REGION \
+          | docker login --username AWS --password-stdin $ECR_REPO
+        '''
+      }
+    }
+
+    stage('Tag & Push Image to ECR') {
+      steps {
+        sh '''
+          docker tag product-service:${IMAGE_TAG} $ECR_REPO:${IMAGE_TAG}
+          docker push $ECR_REPO:${IMAGE_TAG}
         '''
       }
     }
 
   }
 }
+
