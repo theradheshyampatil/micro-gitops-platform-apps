@@ -9,32 +9,30 @@ pipeline {
 
   stages {
 
-    stage('Checkout Source Code') {
+    stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    stage('Build Docker Image') {
+    stage('Build Image') {
       steps {
         dir('apps/product-service') {
-          sh '''
-            docker build -t product-service:${IMAGE_TAG} .
-          '''
+          sh 'docker build -t product-service:${IMAGE_TAG} .'
         }
       }
     }
 
-    stage('Login to AWS ECR') {
+    stage('Login to ECR') {
       steps {
         sh '''
-          aws ecr get-login-password --region $AWS_REGION \
-          | docker login --username AWS --password-stdin $ECR_REPO
+          aws ecr get-login-password --region $AWS_REGION |
+          docker login --username AWS --password-stdin $ECR_REPO
         '''
       }
     }
 
-    stage('Tag & Push Image to ECR') {
+    stage('Push Image') {
       steps {
         sh '''
           docker tag product-service:${IMAGE_TAG} $ECR_REPO:${IMAGE_TAG}
@@ -42,7 +40,5 @@ pipeline {
         '''
       }
     }
-
   }
 }
-
