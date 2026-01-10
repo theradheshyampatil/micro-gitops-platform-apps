@@ -2,7 +2,11 @@ const express = require("express");
 const app = express();
 
 app.get("/", (req, res) => {
-  res.json({ service: "product-service", status: "ok" });
+  res.json({
+    service: "user-service",
+    status: "ok",
+    endpoints: ["/health"]
+  });
 });
 
 app.listen(3000, () => {

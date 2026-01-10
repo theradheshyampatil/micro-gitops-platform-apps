@@ -12,3 +12,6 @@ def users():
         {"id": 1, "name": "Radhe"},
         {"id": 2, "name": "DevOps"}
     ]
+@app.get("/")
+def root():
+    return {"service": "user-service", "status": "ok"}

@@ -1,15 +1,8 @@
 const express = require("express");
 const app = express();
 
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-app.get("/orders", (req, res) => {
-  res.json([
-    { id: 101, item: "Book" },
-    { id: 102, item: "Pen" }
-  ]);
+app.get("/", (req, res) => {
+  res.json({ service: "order-service", status: "ok" });
 });
 
 app.listen(4000, () => {
