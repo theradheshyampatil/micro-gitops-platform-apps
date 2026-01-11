@@ -3,42 +3,74 @@ pipeline {
 
   environment {
     AWS_REGION = "ap-south-1"
-    ECR_REPO   = "908692150527.dkr.ecr.ap-south-1.amazonaws.com/product-service"
-    IMAGE_TAG  = "${BUILD_NUMBER}"
+    AWS_ACCOUNT_ID = "908692150527"
+    SERVICE_NAME = "product-service"
+
+    IMAGE_TAG = "${BUILD_NUMBER}"
+    ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    IMAGE = "${ECR_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
+
+    GITOPS_REPO = "git@github.com:theradheshyampatil/micro-gitops-platform-gitops.git"
   }
 
   stages {
 
-    stage('Checkout') {
+    stage('Checkout Source Code') {
       steps {
         checkout scm
       }
     }
 
-    stage('Build Image') {
+    stage('Build Docker Image') {
       steps {
-        dir('apps/product-service') {
-          sh 'docker build -t product-service:${IMAGE_TAG} .'
+        dir("apps/${SERVICE_NAME}") {
+          sh "docker build -t ${SERVICE_NAME}:${IMAGE_TAG} ."
         }
       }
     }
 
-    stage('Login to ECR') {
+    stage('Login to AWS ECR') {
       steps {
-        sh '''
-          aws ecr get-login-password --region $AWS_REGION |
-          docker login --username AWS --password-stdin $ECR_REPO
-        '''
+        sh """
+          aws ecr get-login-password --region ${AWS_REGION} |
+          docker login --username AWS --password-stdin ${ECR_REGISTRY}
+        """
       }
     }
 
-    stage('Push Image') {
+    stage('Push Image to ECR') {
       steps {
-        sh '''
-          docker tag product-service:${IMAGE_TAG} $ECR_REPO:${IMAGE_TAG}
-          docker push $ECR_REPO:${IMAGE_TAG}
-        '''
+        sh """
+          docker tag ${SERVICE_NAME}:${IMAGE_TAG} ${IMAGE}
+          docker push ${IMAGE}
+        """
       }
+    }
+
+    stage('Update GitOps Repo') {
+      steps {
+        sh """
+          rm -rf gitops
+          git clone ${GITOPS_REPO} gitops
+
+          cd gitops/apps/${SERVICE_NAME}
+
+          sed -i 's|image: .*|image: ${IMAGE}|' deployment.yaml
+
+          git config user.name "jenkins"
+          git config user.email "jenkins@ci.local"
+
+          git add deployment.yaml
+          git commit -m "ci: deploy ${SERVICE_NAME} ${IMAGE_TAG}"
+          git push origin main
+        """
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ ${SERVICE_NAME} image ${IMAGE_TAG} deployed via GitOps"
     }
   }
 }
