@@ -47,30 +47,27 @@ pipeline {
       }
     }
 
-    stage('Update GitOps Repo') {
-      steps {
-        sh """
-          rm -rf gitops
-          git clone ${GITOPS_REPO} gitops
+stage('Update GitOps Repo') {
+  steps {
+    sh '''
+      rm -rf gitops
+      git clone git@github.com:theradheshyampatil/micro-gitops-platform-gitops.git gitops
 
-          cd gitops/apps/${SERVICE_NAME}
+      cd gitops/apps/product-service
 
-          sed -i 's|image: .*|image: ${IMAGE}|' deployment.yaml
+      sed -i "s|image: .*|image: ${ECR_REPO}:${IMAGE_TAG}|" deployment.yaml
 
-          git config user.name "jenkins"
-          git config user.email "jenkins@ci.local"
+      git config user.name "jenkins"
+      git config user.email "jenkins@ci.local"
 
-          git add deployment.yaml
-          git commit -m "ci: deploy ${SERVICE_NAME} ${IMAGE_TAG}"
-          git push origin main
-        """
-      }
-    }
-  }
+      if git diff --quiet; then
+        echo "No GitOps change required (image already updated)"
+        exit 0
+      fi
 
-  post {
-    success {
-      echo "✅ ${SERVICE_NAME} image ${IMAGE_TAG} deployed via GitOps"
-    }
+      git add deployment.yaml
+      git commit -m "ci: deploy product-service ${IMAGE_TAG}"
+      git push origin main
+    '''
   }
 }
