@@ -3,14 +3,8 @@ pipeline {
 
   environment {
     AWS_REGION = "ap-south-1"
-    AWS_ACCOUNT_ID = "908692150527"
-    SERVICE_NAME = "product-service"
-
-    IMAGE_TAG = "${BUILD_NUMBER}"
-    ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-    IMAGE = "${ECR_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
-
-    GITOPS_REPO = "git@github.com:theradheshyampatil/micro-gitops-platform-gitops.git"
+    ECR_REPO   = "908692150527.dkr.ecr.ap-south-1.amazonaws.com/product-service"
+    IMAGE_TAG  = "${BUILD_NUMBER}"
   }
 
   stages {
@@ -23,51 +17,54 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        dir("apps/${SERVICE_NAME}") {
-          sh "docker build -t ${SERVICE_NAME}:${IMAGE_TAG} ."
+        dir('apps/product-service') {
+          sh 'docker build -t product-service:${IMAGE_TAG} .'
         }
       }
     }
 
     stage('Login to AWS ECR') {
       steps {
-        sh """
-          aws ecr get-login-password --region ${AWS_REGION} |
-          docker login --username AWS --password-stdin ${ECR_REGISTRY}
-        """
+        sh '''
+          aws ecr get-login-password --region $AWS_REGION \
+          | docker login --username AWS --password-stdin $ECR_REPO
+        '''
       }
     }
 
     stage('Push Image to ECR') {
       steps {
-        sh """
-          docker tag ${SERVICE_NAME}:${IMAGE_TAG} ${IMAGE}
-          docker push ${IMAGE}
-        """
+        sh '''
+          docker tag product-service:${IMAGE_TAG} $ECR_REPO:${IMAGE_TAG}
+          docker push $ECR_REPO:${IMAGE_TAG}
+        '''
       }
     }
 
-stage('Update GitOps Repo') {
-  steps {
-    sh '''
-      rm -rf gitops
-      git clone git@github.com:theradheshyampatil/micro-gitops-platform-gitops.git gitops
+    stage('Update GitOps Repo') {
+      steps {
+        sh '''
+          rm -rf gitops
+          git clone git@github.com:theradheshyampatil/micro-gitops-platform-gitops.git gitops
 
-      cd gitops/apps/product-service
+          cd gitops/apps/product-service
 
-      sed -i "s|image: .*|image: ${ECR_REPO}:${IMAGE_TAG}|" deployment.yaml
+          sed -i "s|image: .*|image: ${ECR_REPO}:${IMAGE_TAG}|" deployment.yaml
 
-      git config user.name "jenkins"
-      git config user.email "jenkins@ci.local"
+          git config user.name "jenkins"
+          git config user.email "jenkins@ci.local"
 
-      if git diff --quiet; then
-        echo "No GitOps change required (image already updated)"
-        exit 0
-      fi
+          if git diff --quiet; then
+            echo "No GitOps change required (image already up to date)"
+            exit 0
+          fi
 
-      git add deployment.yaml
-      git commit -m "ci: deploy product-service ${IMAGE_TAG}"
-      git push origin main
-    '''
+          git add deployment.yaml
+          git commit -m "ci: deploy product-service ${IMAGE_TAG}"
+          git push origin main
+        '''
+      }
+    }
+
   }
 }
