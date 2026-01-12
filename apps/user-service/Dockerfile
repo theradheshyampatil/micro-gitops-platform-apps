@@ -9,7 +9,8 @@ COPY app/ app/
 
 # Install runtime dependencies
 RUN pip install --no-cache-dir fastapi uvicorn
-
+# ✅ ADD THIS LINE
+RUN pip install --no-cache-dir psycopg2-binary
 # Expose port
 EXPOSE 8000
 
