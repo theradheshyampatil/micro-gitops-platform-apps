@@ -10,7 +10,9 @@ app.get("/health", (req, res) => {
 
 app.get("/health/db", async (req, res) => {
   try {
-    await pool.query("select 1");
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
     res.json({ db: "ok" });
   } catch (err) {
     res.status(500).json({
@@ -20,6 +22,13 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
+app.get("/products", (req, res) => {
+  res.json([
+    { id: 1, name: "Laptop" },
+    { id: 2, name: "Phone" }
+  ]);
+});
+
 app.listen(PORT, () => {
-  console.log(`Product service running on port ${PORT}`);
+  console.log(`product-service running on port ${PORT}`);
 });
