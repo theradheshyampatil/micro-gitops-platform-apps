@@ -2,6 +2,6 @@ metadata:
   name: user-service
   namespace: apps
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     acme.cert-manager.io/http01-ingress-class: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: web
