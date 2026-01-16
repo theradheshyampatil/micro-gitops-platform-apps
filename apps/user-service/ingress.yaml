@@ -1,7 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
   name: user-service
   namespace: apps
   annotations:
+    kubernetes.io/ingress.class: traefik
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    acme.cert-manager.io/http01-ingress-class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+    - hosts:
+        - user.projectbyradhe.xyz
+      secretName: user-service-tls
+  rules:
+    - host: user.projectbyradhe.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8000
